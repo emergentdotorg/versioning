@@ -1,0 +1,22 @@
+# Build
+build/
+/out
+
+# Mac
+.DS_Store
+userHome
+
+# IntelliJ
+.idea
+*.iml
+
+# Gradle
+.gradletasknamecache
+.gradle
+
+# Other
+local.properties
+*.swp
+
+.claude/
+.kotlin/

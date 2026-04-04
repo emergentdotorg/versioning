@@ -1,0 +1,48 @@
+[versions]
+assertj = "3.27.7"
+commons-io = "2.14.0"
+commons-lang = "2.6"
+commons-lang3 = "3.20.0"
+grgit = "4.1.1"
+groovy = "4.0.29"
+gson = "2.13.2"
+jgit = "7.6.0.202603022253-r"
+jspecify = "1.0.0"
+junit4 = "4.13.2"
+junit-jupiter = "5.13.3"
+junit-platform = "1.13.3"
+lombok = "1.18.38"
+spock = "2.3-groovy-4.0"
+svnkit = "1.10.11"
+maven = "3.9.9"
+semver = "0.10.2"
+bootstrap = "0.9.9"
+
+[libraries]
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+assertj-guava = { module = "org.assertj:assertj-guava", version.ref = "assertj" }
+commons-io = { module = "commons-io:commons-io", version.ref = "commons-io"}
+commons-lang = { module = "commons-lang:commons-lang", version.ref = "commons-lang"}
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3"}
+groovy = { module = "org.apache.groovy:groovy", version.ref = "groovy"}
+grgit-core = { module = "org.ajoberstar.grgit:grgit-core", version.ref = "grgit" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
+jgitUi = { module = "org.eclipse.jgit:org.eclipse.jgit.ui", version.ref = "jgit" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+junit4 = { module = "junit:junit", version.ref = "junit4" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit-jupiter" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit-jupiter" }
+junit-jupiter-migrationsupport = { module = "org.junit.jupiter:junit-jupiter-migrationsupport", version.ref = "junit-jupiter" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
+lombok = { module = "org.projectlombok:lombok", version.ref="lombok" }
+maven-artifact = { module = "org.apache.maven:maven-artifact", version.ref = "maven" }
+spock-core = { module = "org.spockframework:spock-core", version.ref = "spock" }
+svnkit = { module = "org.tmatesoft.svnkit:svnkit", version.ref = "svnkit" }
+semver = { module = "com.github.zafarkhaja:java-semver", version.ref = "semver" }
+
+[bundles]
+jgit = ["jgit", "jgitUi"]
+junit-impl = ["junit-jupiter-api", "junit-jupiter-params"]
+junit-runtime = ["junit-jupiter-engine", "junit-jupiter-migrationsupport", "junit-platform-launcher"]
