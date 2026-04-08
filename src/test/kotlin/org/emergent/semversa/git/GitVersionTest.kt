@@ -51,8 +51,7 @@ open class GitVersionTest {
     @Test
     @Throws(IOException::class)
     fun gitMaster() {
-        val repo = GitTestRepo()
-        try {
+        GitTestRepo().use { repo ->
             // Git initialisation
             for (i in 1..4) {
                 repo.commit(i)
@@ -67,7 +66,7 @@ open class GitVersionTest {
             configure(extension)
             val info = extension.info.get()
             assertThat(info).isNotNull()
-            assertThat(info.full).isEqualTo("0.0.0-4-SNAPSHOT")
+            assertThat(info.full).isEqualTo("0.0.1-SNAPSHOT")
             // assertEquals("0.0.0-4-SNAPSHOT+f46aedde", extension.getVersion())
 
             // val info = extension.getInfo()
@@ -86,16 +85,54 @@ open class GitVersionTest {
             // Assert.assertNotNull(info.versionNumber)
             // Assert.assertEquals(0, info.versionNumber!!.versionCode.toLong())
             // Assert.assertEquals(time, info.time)
-        } finally {
-            repo.close()
+        }
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun gitDevel() {
+        GitTestRepo().use { repo ->
+            // Git initialisation
+            for (i in 1..4) {
+                repo.commit(i)
+            }
+            repo.branch("devel")
+            val head = repo.commitLookup("Commit 4")
+            val headAbbreviated = repo.commitLookup("Commit 4", true)
+            val time: String = getCommitTime(repo, head)
+
+            val project = ProjectBuilder.builder().withProjectDir(repo.dir).build()
+            SemversaPlugin().apply(project)
+            val extension = project.extensions.getByName("semversa") as SemversaExtension
+            configure(extension)
+            val info = extension.info.get()
+            assertThat(info).isNotNull()
+            assertThat(info.full).isEqualTo("0.0.0-devel-4-SNAPSHOT")
+            // assertEquals("0.0.0-4-SNAPSHOT+f46aedde", extension.getVersion())
+
+            // val info = extension.getInfo()
+            // Assert.assertNotNull(info)
+            // Assert.assertEquals(headAbbreviated, info.build)
+            // Assert.assertEquals("main", info.branch)
+            // Assert.assertEquals("", info.base)
+            // Assert.assertEquals("main", info.branchId)
+            // Assert.assertEquals("main", info.branchType)
+            // Assert.assertEquals(head, info.commit)
+            // Assert.assertEquals("main-" + headAbbreviated, info.display)
+            // Assert.assertEquals("main-" + headAbbreviated, info.full)
+            // Assert.assertEquals("git", info.scm)
+            // Assert.assertNull(info.tag)
+            // Assert.assertFalse(info.dirty)
+            // Assert.assertNotNull(info.versionNumber)
+            // Assert.assertEquals(0, info.versionNumber!!.versionCode.toLong())
+            // Assert.assertEquals(time, info.time)
         }
     }
 
     @Test
     @Throws(IOException::class, GitAPIException::class)
     fun gitDetachedHEAD() {
-        val repo = GitTestRepo()
-        try {
+        GitTestRepo().use { repo ->
             // Git initialisation
             for (i in 1..5) {
                 repo.commit(i)
@@ -147,8 +184,6 @@ open class GitVersionTest {
             } finally {
                 FileUtils.deleteDirectory(detached)
             }
-        } finally {
-            repo.close()
         }
     }
 

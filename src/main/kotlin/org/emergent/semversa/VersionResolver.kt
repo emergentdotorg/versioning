@@ -13,17 +13,7 @@ import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 
-class VersionResolver(val config: Config,
-                      private val repo: GitRepo,
-                      private val resolvedProvider: () -> Resolved = {
-                          if (!repo.exists()) Resolved.NONE else
-                          repo.apply { getResolved(config, it) }
-                      }
-) {
-
-    constructor(resolved: Resolved, config: Config) : this(config, GitRepo(File(resolved.gitDir)),
-        { resolved })
-
+class VersionResolver(val config: Config, private val repo: GitRepo) {
     constructor(config: Config, basedir: Path) : this(config, GitRepo(basedir))
 
     constructor(config: Config, basedir: File) : this(config, GitRepo(basedir))
@@ -38,8 +28,8 @@ class VersionResolver(val config: Config,
     fun version(): String = versionInfo().full
 
     fun resolved(): Resolved {
-        //return repo.apply { getResolved(config, it) }
-        return resolvedProvider()
+        return if (!repo.exists()) Resolved.NONE else
+            repo.apply { getResolved(config, it) }
     }
 
     @Suppress("unused")
@@ -71,6 +61,12 @@ class VersionResolver(val config: Config,
         fun info(config: Config, resolved: Resolved): VersionInfo {
             val full = getFull(config, resolved)
             return VersionInfo(full, resolved)
+        }
+
+        @JvmStatic
+        fun getFull(config: Config, resolved: Resolved): String {
+            val values = getReplacementMap(config.releaseBranchRegex, resolved)
+            return performTokenReplacements(config.versionPattern, values)
         }
 
         @JvmStatic
@@ -109,11 +105,6 @@ class VersionResolver(val config: Config,
             )
         }
 
-        @JvmStatic
-        fun getFull(config: Config, resolved: Resolved): String {
-            val values = getReplacementMap(config.releaseBranchRegex, resolved)
-            return performTokenReplacements(config.versionPattern, values)
-        }
 
         @JvmStatic
         private fun getReplacementMap(releaseBranchRegex: String, resolved: Resolved): Map<String, String> {
@@ -123,24 +114,34 @@ class VersionResolver(val config: Config,
             val hashShort = resolved.shortHash
             val hasCommits = commits > 0
             val isDetached = resolved.detached
-            val tagVersion = resolved.tagVersion
             val branch = if (isDetached) "detached" else resolved.branch
             val isReleaseBranch = branch.matches(Regex(releaseBranchRegex))
-            val isRelease = isReleaseBranch && !hasCommits
+            val isRelease = isReleaseBranch && !hasCommits && !isDirty
+            val isSnapshot = isReleaseBranch && !isRelease
+            val tagVersion = resolved.tagVersion
+
+            val version = if (isSnapshot) {
+                val result = "^v?((\\d+)(?:\\.(\\d+)(?:\\.(\\d+))?)?)$".toRegex().matchEntire(tagVersion)?.groups
+                val micro = "${result?.get(4)?.value}"
+                val microInt = 1 + (micro.toIntOrNull() ?: 0)
+                "${result?.get(2)?.value}.${result?.get(3)?.value}.${microInt}"
+            } else {
+                tagVersion
+            }
 
             return PatternToken.entries.associate { token ->
                 val replacement = when (token) {
-                    PatternToken.TAG -> tagVersion
+                    PatternToken.TAG -> version
                     PatternToken.BRANCH -> branch
                     PatternToken.COMMIT -> commits.toString()
                     PatternToken.HASH_FULL -> hash
                     PatternToken.HASH_SHORT -> hashShort
-                    PatternToken.SNAPSHOT -> if (hasCommits) "SNAPSHOT" else ""
-                    PatternToken.COMMIT_OPT -> if (hasCommits) commits.toString() else ""
+                    PatternToken.SNAPSHOT -> if (hasCommits || isDirty) "SNAPSHOT" else ""
+                    PatternToken.COMMIT_OPT -> if (hasCommits && !isSnapshot) commits.toString() else ""
                     PatternToken.BRANCH_OPT -> if (isReleaseBranch) "" else branch
-                    PatternToken.HASH_FULL_OPT -> if (isRelease) "" else hash
-                    PatternToken.HASH_SHORT_OPT -> if (isRelease) "" else hashShort
-                    PatternToken.DIRTY -> if (isDirty) "dirty" else ""
+                    PatternToken.HASH_FULL_OPT -> if (isRelease || isSnapshot) "" else hash
+                    PatternToken.HASH_SHORT_OPT -> if (isRelease || isSnapshot) "" else hashShort
+                    PatternToken.DIRTY -> if (isDirty && !isSnapshot) "dirty" else ""
                 }
                 token.token to (replacement)
             }

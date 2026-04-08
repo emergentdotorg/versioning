@@ -27,6 +27,7 @@ class VersionInfo(
         dirty = resolved.dirty
     )
 
+    fun version() : String = full
 
     companion object {
         @JvmField val NONE = VersionInfo(scmExists = false, full = "unspecified")
