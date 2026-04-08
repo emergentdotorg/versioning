@@ -9,6 +9,7 @@ import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.revwalk.RevObject
 import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import java.io.File
 import java.time.Instant
 import java.time.ZoneOffset
@@ -21,6 +22,25 @@ class GitUtil private constructor() {
     }
 
     companion object {
+
+        fun findGitDir(basePath: File): String {
+            return getRepository(basePath).use { it.directory.absolutePath }
+        }
+
+        fun getRepository(basePath: File, mustExist: Boolean = false): Repository {
+            val builder = FileRepositoryBuilder()
+                .readEnvironment()
+                .findGitDir(basePath.absoluteFile)
+                .setMustExist(mustExist)
+            return builder.build()
+            //return if (mustExist) builder.build() else FileRepository(builder)
+        }
+
+        private fun normalize(file: File?): File? {
+            return file?.absoluteFile
+        }
+
+
         @JvmStatic
         fun getStatus(dir: File): Status {
             return GitExec.applyOp(dir) { git -> git.status().call() }

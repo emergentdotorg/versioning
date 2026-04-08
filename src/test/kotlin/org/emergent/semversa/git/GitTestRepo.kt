@@ -7,7 +7,7 @@ import java.io.File
 import java.io.IOException
 import java.time.ZonedDateTime
 
-class GitRepo @JvmOverloads constructor(val dir: File = createTempDir("git", "")) : Closeable {
+class GitTestRepo @JvmOverloads constructor(val dir: File = createTempDir("git", "")) : Closeable {
 
     init {
         Git.init().setDirectory(dir).call()

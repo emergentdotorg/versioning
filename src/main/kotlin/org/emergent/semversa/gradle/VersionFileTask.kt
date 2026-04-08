@@ -22,7 +22,7 @@ open class VersionFileTask @Inject constructor() : VersionBaseTask() {
 
     @TaskAction
     fun run() {
-        val info = project.extensions.getByType(SemversaExtension::class.java).getInfo()
+        val info = project.extensions.getByType(SemversaExtension::class.java).info.get()
         getVerifiedParent(file)
         with(info) {
             file.writeText(

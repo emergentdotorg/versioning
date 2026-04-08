@@ -13,7 +13,7 @@ open class VersionDisplayTask @Inject constructor() : VersionBaseTask() {
     @TaskAction
     fun run() {
         val p: (String?) -> Unit = { s: String? -> println(s) }
-        val info = project.extensions.getByType(SemversaExtension::class.java).getInfo()
+        val info = project.extensions.getByType(SemversaExtension::class.java).info.get()
         if (info === VersionInfo.NONE) {
             p("[version] No version can be computed from the SCM.")
             return

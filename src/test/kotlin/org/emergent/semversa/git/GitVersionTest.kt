@@ -26,10 +26,11 @@ open class GitVersionTest {
         SemversaPlugin().apply(project)
         // val extension = project.extensions.create("versioning", VersioningExtension::class.java,
         // project)
-        val extension = project.extensions.getByName("versioning") as SemversaExtension
+        val extension = project.extensions.getByName("semversa") as SemversaExtension
         configure(extension)
-        assertThat(extension.getVersion()).isEqualTo("unspecified")
-        // val info = extension.getInfo()
+        val info = extension.info.get()
+        assertThat(info).isNotNull()
+        assertThat(info.full).isEqualTo("unspecified")
         // Assert.assertNotNull(info)
         // Assert.assertEquals(VersionInfo.NONE, info)
         // Assert.assertEquals("", info.build)
@@ -50,7 +51,7 @@ open class GitVersionTest {
     @Test
     @Throws(IOException::class)
     fun gitMaster() {
-        val repo = GitRepo()
+        val repo = GitTestRepo()
         try {
             // Git initialisation
             for (i in 1..4) {
@@ -62,9 +63,11 @@ open class GitVersionTest {
 
             val project = ProjectBuilder.builder().withProjectDir(repo.dir).build()
             SemversaPlugin().apply(project)
-            val extension = project.extensions.getByName("versioning") as SemversaExtension
+            val extension = project.extensions.getByName("semversa") as SemversaExtension
             configure(extension)
-            assertThat(extension.getVersion()).isEqualTo("0.0.0-4-SNAPSHOT")
+            val info = extension.info.get()
+            assertThat(info).isNotNull()
+            assertThat(info.full).isEqualTo("0.0.0-4-SNAPSHOT")
             // assertEquals("0.0.0-4-SNAPSHOT+f46aedde", extension.getVersion())
 
             // val info = extension.getInfo()
@@ -91,7 +94,7 @@ open class GitVersionTest {
     @Test
     @Throws(IOException::class, GitAPIException::class)
     fun gitDetachedHEAD() {
-        val repo = GitRepo()
+        val repo = GitTestRepo()
         try {
             // Git initialisation
             for (i in 1..5) {
@@ -120,9 +123,11 @@ open class GitVersionTest {
 
                 val project = ProjectBuilder.builder().withProjectDir(detached).build()
                 SemversaPlugin().apply(project)
-                val extension = project.extensions.getByName("versioning") as SemversaExtension
+                val extension = project.extensions.getByName("semversa") as SemversaExtension
                 configure(extension)
-                assertThat(extension.getVersion()).isEqualTo("0.0.0-detached-3-SNAPSHOT")
+                val info = extension.info.get()
+                assertThat(info).isNotNull()
+                assertThat(info.full).isEqualTo("0.0.0-detached-3-SNAPSHOT")
                 // val info = extension.getInfo()
                 // Assert.assertNotNull(info)
                 // Assert.assertEquals(commit3Abbreviated, info.build)
@@ -148,7 +153,7 @@ open class GitVersionTest {
     }
 
     companion object {
-        protected fun getCommitTime(repo: GitRepo, commitId: String?): String {
+        protected fun getCommitTime(repo: GitTestRepo, commitId: String?): String {
             return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(repo.dateTimeLookup(commitId))
         }
     }

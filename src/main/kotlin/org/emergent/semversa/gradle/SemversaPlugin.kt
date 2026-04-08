@@ -13,7 +13,7 @@ import org.gradle.internal.extensions.core.extra
 class SemversaPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
-        val ext = project.extensions.create("versioning", SemversaExtension::class.java, project)
+        val ext = project.extensions.create("semversa", SemversaExtension::class.java, project)
 
         ext.repoRoot.convention(gitRootProvider(project))
 
@@ -22,8 +22,8 @@ class SemversaPlugin : Plugin<Project> {
         ext.versionPattern.convention(prov(project, "versionPattern", VERSION_PATTERN_DEF))
         ext.lastTagPattern.convention(prov(project, "lastTagPattern", LAST_TAG_PATTERN_DEF))
 
-        project.tasks.register("versionDisplay", VersionDisplayTask::class.java)
-        project.tasks.register("versionFile", VersionFileTask::class.java)
+        project.tasks.register("semversaDisplay", VersionDisplayTask::class.java)
+        project.tasks.register("semversaFile", VersionFileTask::class.java)
 
         val info = ext.info.get()
         if (info.scmExists && !project.extra.has("version")) {

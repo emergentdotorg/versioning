@@ -16,4 +16,8 @@ object Constants {
     const val VERSION_PATTERN_DEF = "%t(-%B)(-%C)(-%S)(+%H)(.%D)"
 
     const val LAST_TAG_PATTERN_DEF = "v?(?<major>\\d+)(?:\\.(?<minor>\\d+)(?:\\.(?<micro>\\d+))?)?$"
+
+    const val TAG_VERSION_DEF: String = "0.0.0"
+
+    const val HEAD: String = org.eclipse.jgit.lib.Constants.HEAD
 }

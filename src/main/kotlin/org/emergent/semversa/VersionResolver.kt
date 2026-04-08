@@ -2,62 +2,79 @@ package org.emergent.semversa
 
 import com.github.zafarkhaja.semver.Version
 import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.submodule.SubmoduleWalk
-import org.emergent.semversa.git.GitExec
+import org.emergent.semversa.git.GitRepo
+import org.emergent.semversa.git.GitUtil
 import org.emergent.semversa.git.TagProvider
+import org.emergent.semversa.util.Constants
 import java.io.File
+import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 
-class VersionResolver(
-    val config: Config,
-    val resolved: Resolved
+class VersionResolver(val config: Config,
+                      private val repo: GitRepo,
+                      private val resolvedProvider: () -> Resolved = {
+                          if (!repo.exists()) Resolved.NONE else
+                          repo.apply { getResolved(config, it) }
+                      }
 ) {
 
-    fun version(): String = calculateVersion()
+    constructor(resolved: Resolved, config: Config) : this(config, GitRepo(File(resolved.gitDir)),
+        { resolved })
 
-    enum class PatternToken(val code: String) {
-        TAG("t"),
-        COMMIT("c"),
-        COMMIT_OPT("C"),
-        BRANCH("b"),
-        BRANCH_OPT("B"),
-        HASH_SHORT("h"),
-        HASH_SHORT_OPT("H"),
-        HASH_FULL("f"),
-        HASH_FULL_OPT("F"),
-        SNAPSHOT("S"),
-        DIRTY("D");
+    constructor(config: Config, basedir: Path) : this(config, GitRepo(basedir))
 
-        val token: String
-            get() = "%$code"
+    constructor(config: Config, basedir: File) : this(config, GitRepo(basedir))
 
-        override fun toString(): String = token
+    fun versionInfo(): VersionInfo {
+        //if (!repo.exists()) return VersionInfo.NONE
+        val resolved = resolved()
+        if (resolved == Resolved.NONE) return VersionInfo.NONE
+        return info(config, resolved)
     }
 
-    private fun calculateVersion(): String {
-        val values = getReplacementMap(config.releaseBranchRegex, resolved)
-        return performTokenReplacements(config.versionPattern, values)
+    fun version(): String = versionInfo().full
+
+    fun resolved(): Resolved {
+        //return repo.apply { getResolved(config, it) }
+        return resolvedProvider()
+    }
+
+    @Suppress("unused")
+    private fun getBaseTags(base: String): List<String> {
+        return getLastTags("^${Regex.escape(base)}\\.(\\d+)$")
+    }
+
+    private fun getLastTags(tagPattern: String): List<String> {
+        val regex = Regex(tagPattern)
+        return repo.apply { git ->
+            (git.tagList().call() ?: emptyList()).asSequence()
+                .map { GitUtil.resolveTag(git.repository, it) }
+                .filter { it != null && regex.containsMatchIn(it.name) }
+                .map { it!! }
+                .sortedWith(Comparator { a, b ->
+                    // ... sort by desc commit time
+                    val timeCompare = (b.commit.timestamp).compareTo(a.commit.timestamp)
+                    if (timeCompare != 0) timeCompare
+                    else GitUtil.tagOrder(tagPattern).reversed().compare(a.name, b.name)
+                })
+                .map { it.name }
+                .toList()
+        }
     }
 
     companion object {
 
-        @Suppress("unused")
         @JvmStatic
-        fun getPatternStrategy(config: Config, gitDir: File): VersionResolver {
-            return GitExec.applyOp(gitDir) { git -> getPatternStrategy(config, git) }
+        fun info(config: Config, resolved: Resolved): VersionInfo {
+            val full = getFull(config, resolved)
+            return VersionInfo(full, resolved)
         }
 
         @JvmStatic
-        private fun getPatternStrategy(config: Config, git: Git): VersionResolver {
-            val resolved = getResolved(config, git)
-            return VersionResolver(config, resolved)
-        }
-
-        @JvmStatic
-        private fun getResolved(config: Config, git: Git): Resolved {
+        fun getResolved(config: Config, git: Git): Resolved {
             val repository = git.repository
             val headId = repository.resolve(Constants.HEAD)
                 ?: throw IllegalStateException("headId is null")
@@ -85,26 +102,35 @@ class VersionResolver(
                 gitDir = repository.directory.absolutePath,
                 branch = branch,
                 hash = headId.name,
-                tagVersion = tagVersion ?: Resolved.TAG_VERSION_DEF,
+                tagVersion = tagVersion ?: Constants.TAG_VERSION_DEF,
                 commits = commits,
                 dirty = dirty,
                 detached = detached
             )
         }
+
+        @JvmStatic
+        fun getFull(config: Config, resolved: Resolved): String {
+            val values = getReplacementMap(config.releaseBranchRegex, resolved)
+            return performTokenReplacements(config.versionPattern, values)
+        }
+
+        @JvmStatic
         private fun getReplacementMap(releaseBranchRegex: String, resolved: Resolved): Map<String, String> {
             val commits = resolved.commits
             val isDirty = resolved.dirty
             val hash = resolved.hash
-            val hashShort = resolved.shortHash()
+            val hashShort = resolved.shortHash
             val hasCommits = commits > 0
             val isDetached = resolved.detached
+            val tagVersion = resolved.tagVersion
             val branch = if (isDetached) "detached" else resolved.branch
             val isReleaseBranch = branch.matches(Regex(releaseBranchRegex))
             val isRelease = isReleaseBranch && !hasCommits
 
             return PatternToken.entries.associate { token ->
                 val replacement = when (token) {
-                    PatternToken.TAG -> resolved.tagVersion
+                    PatternToken.TAG -> tagVersion
                     PatternToken.BRANCH -> branch
                     PatternToken.COMMIT -> commits.toString()
                     PatternToken.HASH_FULL -> hash
@@ -166,4 +192,5 @@ class VersionResolver(
             return result
         }
     }
+
 }

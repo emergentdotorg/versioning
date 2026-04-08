@@ -1,21 +1,22 @@
 package org.emergent.semversa
 
+import org.emergent.semversa.util.Constants
 import org.emergent.semversa.util.Util
 
-class Resolved(
+
+
+data class Resolved(
     val gitDir: String,
     val branch: String,
     val detached : Boolean,
     val hash: String = "",
-    val tagVersion: String = TAG_VERSION_DEF,
-    val commits: Int,
-    val dirty: Boolean = false
+    val tagVersion: String = Constants.TAG_VERSION_DEF,
+    val commits: Int = 0,
+    val dirty: Boolean = false,
 ) {
-    fun shortHash(): String {
-        return Util.toShortHash(hash)
-    }
+    val shortHash: String = Util.toShortHash(hash)
 
     companion object {
-        const val TAG_VERSION_DEF: String = "0.0.0"
+        @JvmField val NONE = Resolved("", "", true)
     }
 }

@@ -75,7 +75,7 @@ publishing {
         }
         val nexusReleasesUrl: String? by project
         val nexusSnapshotsUrl: String? by project
-        if (!bootstrap.isNullOrEmpty() && !nexusSnapshotsUrl.isNullOrEmpty() && !nexusReleasesUrl.isNullOrEmpty()) {
+        if (!nexusSnapshotsUrl.isNullOrEmpty() && !nexusReleasesUrl.isNullOrEmpty()) {
             maven {
                 name = "nexus"
                 url = uri(if ("$version".endsWith("SNAPSHOT")) nexusSnapshotsUrl!! else nexusReleasesUrl!!)
@@ -90,7 +90,8 @@ publishing {
                 description.set("A library for computing version information from the SCM")
             }
         }
-        matching { it is MavenPublication }.configureEach { this as MavenPublication
+        matching { it is MavenPublication }.configureEach {
+            this as MavenPublication
             pom {
                 url.set("https://github.com/${gitHubOwner}/${gitHubRepo}")
                 licenses {
@@ -194,11 +195,13 @@ tasks.withType<Javadoc> {
 
 tasks.jar {
     manifest {
-        attributes(mapOf(
-            "Automatic-Module-Name" to "org.emergent.semversa.gradle",
-            "Implementation-Title" to project.name,
-            "Implementation-Version" to project.version
-        ))
+        attributes(
+            mapOf(
+                "Automatic-Module-Name" to "org.emergent.semversa.gradle",
+                "Implementation-Title" to project.name,
+                "Implementation-Version" to project.version
+            )
+        )
     }
     into("META-INF/maven/${project.group}/${project.name}") {
         from(tasks["generatePomFileForPluginMavenPublication"])
@@ -219,4 +222,10 @@ tasks.matching { it.name.startsWith("dist") }.configureEach {
 
 tasks.withType<Sign>().configureEach {
     onlyIf("signingKeys is set") { project.hasProperty("signingKeys") }
+}
+
+tasks.register("runMain", JavaExec::class.java) {
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("org.emergent.semversa.Main")
+    args()
 }

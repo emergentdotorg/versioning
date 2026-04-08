@@ -16,21 +16,13 @@ class VersionResolverTest {
     fun testDevelSansCommits() {
         var strategy = getPatternStrategy()
         val config = strategy.config
-        val resolved = strategy.resolved
+        val resolved = strategy.resolved().copy(branch = "development")
         strategy = VersionResolver(
+            resolved,
             Config(
                 "main",
                 tagNameRegex = config.tagNameRegex,
                 versionPattern = config.versionPattern
-            ),
-            Resolved(
-                gitDir = resolved.gitDir,
-                branch = "development",
-                detached = resolved.detached,
-                hash = resolved.hash,
-                tagVersion = resolved.tagVersion,
-                commits = resolved.commits,
-                dirty = resolved.dirty
             )
         )
         assertThat(strategy.version()).isNotNull()
@@ -41,19 +33,9 @@ class VersionResolverTest {
     fun testReleaseWithCommits() {
         val strategy = getPatternStrategy()
         val config = strategy.config
-        val resolved = strategy.resolved
-        val updatedStrategy = VersionResolver(
-            config,
-            Resolved(
-                gitDir = resolved.gitDir,
-                branch = resolved.branch,
-                detached = resolved.detached,
-                hash = resolved.hash,
-                tagVersion = resolved.tagVersion,
-                commits = 1,
-                dirty = resolved.dirty
-            )
-        )
+        val resolved = strategy.resolved()
+            .copy(commits = 1)
+        val updatedStrategy = VersionResolver(resolved, config)
         assertThat(updatedStrategy.version()).isNotNull()
             .isEqualTo("1.2.3-1-SNAPSHOT+c9f54782")
     }
@@ -62,19 +44,9 @@ class VersionResolverTest {
     fun testDevelopmentWithCommits() {
         val strategy = getPatternStrategy()
         val config = strategy.config
-        val resolved = strategy.resolved
-        val updatedStrategy = VersionResolver(
-            config,
-            Resolved(
-                gitDir = resolved.gitDir,
-                branch = "development",
-                detached = resolved.detached,
-                hash = resolved.hash,
-                tagVersion = resolved.tagVersion,
-                commits = 1,
-                dirty = resolved.dirty
-            )
-        )
+        val resolved = strategy.resolved()
+            .copy(branch = "development", commits = 1)
+        val updatedStrategy = VersionResolver(resolved, config)
         assertThat(updatedStrategy.version()).isNotNull()
             .isEqualTo("1.2.3-development-1-SNAPSHOT+c9f54782")
     }
@@ -83,19 +55,9 @@ class VersionResolverTest {
     fun testDirty() {
         val strategy = getPatternStrategy()
         val config = strategy.config
-        val resolved = strategy.resolved
-        val updatedStrategy = VersionResolver(
-            config,
-            Resolved(
-                gitDir = resolved.gitDir,
-                branch = resolved.branch,
-                detached = resolved.detached,
-                hash = resolved.hash,
-                tagVersion = resolved.tagVersion,
-                commits = resolved.commits,
-                dirty = true
-            )
-        )
+        val resolved = strategy.resolved()
+            .copy(dirty = true)
+        val updatedStrategy = VersionResolver(resolved, config)
         assertThat(updatedStrategy.version()).isNotNull()
             .isEqualTo("1.2.3.dirty")
     }
@@ -104,13 +66,13 @@ class VersionResolverTest {
     fun testPatternSansHash() {
         val strategy = getPatternStrategy()
         val config = strategy.config
-        val resolved = strategy.resolved
+        val resolved = strategy.resolved()
         val updatedStrategy = VersionResolver(
+            resolved,
             Config(
                 releaseBranchRegex = config.releaseBranchRegex,
                 tagNameRegex = config.tagNameRegex,
-                versionPattern = "%t(-%B)(-%C)(-%S)(.%D)"),
-            resolved
+                versionPattern = "%t(-%B)(-%C)(-%S)(.%D)")
         )
         assertThat(updatedStrategy.version()).isNotNull()
             .isEqualTo("1.2.3")
@@ -157,7 +119,7 @@ class VersionResolverTest {
         private fun getPatternStrategy(): VersionResolver {
             val config = getConf()
             val resolved = getCalc()
-            return VersionResolver(config, resolved)
+            return VersionResolver(resolved, config)
         }
 
         private fun getCalc(): Resolved {

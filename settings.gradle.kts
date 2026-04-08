@@ -1,9 +1,8 @@
 pluginManagement {
     repositories {
         mavenLocal()
-        val bootstrap: String? by settings
         val nexusReleasesUrl: String? by settings
-        if (!bootstrap.isNullOrEmpty() && !nexusReleasesUrl.isNullOrEmpty()) {
+        if (!nexusReleasesUrl.isNullOrEmpty()) {
             maven {
                 name = "nexusReadOnly"
                 url = uri(nexusReleasesUrl!!)
